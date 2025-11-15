@@ -30,26 +30,55 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### Install Dependencies
+### Recommended: Install as a CLI Tool (System-Wide) ⭐
+
+**Best for**: CLI tools, system-wide access, isolated tool management
+
+#### Editable Install (Development)
 
 ```bash
 cd mdparser
-uv sync
+uv tool install -e .
+uv tool update-shell
 ```
 
-Or install directly:
+- ✅ Changes to code are immediately reflected (no reinstall needed)
+- ✅ Isolated tool environment
+- ✅ System-wide `mdparser` command
+
+#### Regular Install (Production)
 
 ```bash
-uv pip install mistletoe
+cd mdparser
+uv tool install .
+uv tool update-shell
 ```
 
-### Install as a Package (Optional)
+- ✅ Makes a copy of the code (works independently of source location)
+- ✅ Good for stable/production versions
+
+**Verify installation:**
+```bash
+uv tool list                    # Should show mdparser
+which mdparser                  # Should show path in UV tools dir
+mdparser --help                 # Should work from anywhere
+```
+
+**Uninstall:**
+```bash
+uv tool uninstall mdparser
+```
+
+For more installation options and details, see [INSTALLATION.md](INSTALLATION.md).
+
+### Alternative: Install in Python Environment
 
 ```bash
+cd mdparser
 uv pip install -e .
 ```
 
-This will make the `mdparser` command available system-wide.
+This will make the `mdparser` command available system-wide in your Python environment.
 
 ## Usage
 
