@@ -59,7 +59,9 @@ def create_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Extract structured information from Markdown files.\n\n"
+            "mdparser extracts structured information from Markdown files including headings,\n"
+            "emphasized text (bold/italic), and text patterns with context. Outputs in markdown,\n"
+            "plain text, or structured JSON formats.\n\n"
             "This tool can extract headings at specified levels, emphasized text (bold/italic),\n"
             "and perform text searches with context extraction. Optimized for AI-agent usage\n"
             "with clear status messages and structured output formats.\n\n"
@@ -68,12 +70,23 @@ def create_parser() -> argparse.ArgumentParser:
             "  mdparser document.md --emphasized-bold\n"
             '  mdparser document.md --find "### 1.1" --lines-after 5\n'
             '  mdparser document.md --find \'"CIF"\' --within-section "6. DEFINITIONS" --lines-after 1\n'
-            "  mdparser document.md --headings 2 --format json --output headings.json"
+            "  mdparser document.md --headings 2 --format json --output headings.json\n"
+            "  mdparser document.md --emphasized-bold --emphasized-under \"Section 3\"\n"
+            "  mdparser document.md --find \"pattern\" --lines-before 2 --lines-after 3\n\n"
+            "Output Formats:\n"
+            "  - markdown: Preserves original markdown formatting (default)\n"
+            "  - text: Plain text with hierarchical indentation\n"
+            "  - json: Structured JSON with metadata (operation, parameters, results, count, status)\n\n"
+            "Exit Codes:\n"
+            "  0: Success\n"
+            "  1: Error (file not found, invalid parameters, etc.)\n"
+            "  2: No matches found\n\n"
+            "Note: Status messages go to stderr, results to stdout (use --quiet to suppress status)."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "For more information, see the README.md file.\n"
-            "Status messages are printed to stderr, results to stdout."
+            "For more information and detailed examples, see the README.md file.\n"
+            "JSON output includes: operation, file, parameters, results array, count, and status."
         ),
     )
 
