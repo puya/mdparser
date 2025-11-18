@@ -102,6 +102,18 @@ def create_parser() -> argparse.ArgumentParser:
         choices=range(1, 7),
         help="Extract headings up to level N (1-6). Example: --headings 3 extracts levels 1, 2, and 3",
     )
+    heading_group.add_argument(
+        "--include-content-lines",
+        type=int,
+        metavar="N",
+        help="Include N lines of content after headings at the deepest extracted level (e.g., --headings 3 --include-content-lines 2 includes 2 lines for level 3 headings)",
+    )
+    heading_group.add_argument(
+        "--include-content-chars",
+        type=int,
+        metavar="N",
+        help="Include N characters of content after headings at the deepest extracted level (e.g., --headings 3 --include-content-chars 100). If both --include-content-lines and --include-content-chars are specified, lines takes precedence.",
+    )
 
     # Emphasized text extraction options
     emphasized_group = parser.add_argument_group("Emphasized Text Extraction")
@@ -215,9 +227,29 @@ def main() -> int:
             validate_heading_level(args.headings)
             status_msg(f"Extracting headings up to level {args.headings}...")
             document = parse_markdown_file(args.file)
-            results = extract_headings(document, max_level=args.headings)
+            # If content inclusion options are set, include content for the deepest level
+            include_content_level = None
+            include_content_lines = None
+            include_content_chars = None
+            if args.include_content_lines is not None or args.include_content_chars is not None:
+                include_content_level = args.headings
+                include_content_lines = args.include_content_lines
+                include_content_chars = args.include_content_chars
+            results = extract_headings(
+                document,
+                max_level=args.headings,
+                include_content_for_level=include_content_level,
+                include_content_lines=include_content_lines,
+                include_content_chars=include_content_chars,
+            )
             operation = "extract_headings"
             parameters = {"max_level": args.headings}
+            if include_content_level:
+                parameters["include_content_for_level"] = include_content_level
+                if include_content_lines is not None:
+                    parameters["include_content_lines"] = include_content_lines
+                if include_content_chars is not None:
+                    parameters["include_content_chars"] = include_content_chars
 
         # Emphasized text extraction
         elif args.emphasized or args.emphasized_bold or args.emphasized_italic:

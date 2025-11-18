@@ -9,7 +9,7 @@ import re
 from typing import Dict, List, Optional
 
 from mistletoe import Document
-from mistletoe.block_token import Heading
+from mistletoe.block_token import Heading, Paragraph
 from mistletoe.span_token import Emphasis, Strong
 
 from .utils import verbose_msg
@@ -27,25 +27,48 @@ def _walk_tokens(token):
             yield from _walk_tokens(child)
 
 
-def extract_headings(document: Document, max_level: int = 6) -> List[Dict[str, any]]:
+def extract_headings(
+    document: Document,
+    max_level: int = 6,
+    include_content_for_level: Optional[int] = None,
+    include_content_lines: Optional[int] = None,
+    include_content_chars: Optional[int] = None,
+) -> List[Dict[str, any]]:
     """
     Extract headings from a parsed Markdown document up to a specified level.
 
     Args:
         document: A Mistletoe Document object
         max_level: Maximum heading level to extract (1-6). Extracts levels 1 through max_level.
+        include_content_for_level: If specified, include content after headings at this level
+        include_content_lines: Number of lines to include (used with include_content_for_level)
+        include_content_chars: Number of characters to include (used with include_content_for_level).
+                              If both lines and chars are specified, lines takes precedence.
 
     Returns:
         A list of dictionaries, each containing:
         - level: The heading level (1-6)
         - text: The heading text content
         - raw: The raw markdown representation of the heading
+        - content: (optional) Content after the heading, if include_content_for_level is set
     """
     headings = []
 
     verbose_msg(f"Extracting headings up to level {max_level}")
+    if include_content_for_level:
+        if include_content_lines:
+            verbose_msg(
+                f"Including {include_content_lines} line(s) of content for level {include_content_for_level} headings"
+            )
+        elif include_content_chars:
+            verbose_msg(
+                f"Including {include_content_chars} character(s) of content for level {include_content_for_level} headings"
+            )
 
-    for token in _walk_tokens(document):
+    # Iterate through document children in order to find content after headings
+    children = document.children if hasattr(document, "children") else []
+
+    for i, token in enumerate(children):
         if isinstance(token, Heading):
             if token.level <= max_level:
                 # Extract text content from heading
@@ -65,10 +88,87 @@ def extract_headings(document: Document, max_level: int = 6) -> List[Dict[str, a
                 prefix = "#" * token.level
                 raw_heading = f"{prefix} {heading_text}"
 
-                headings.append({"level": token.level, "text": heading_text, "raw": raw_heading})
+                heading_data = {"level": token.level, "text": heading_text, "raw": raw_heading}
+
+                # If this is the specified level, find content after it
+                if include_content_for_level and token.level == include_content_for_level:
+                    content = _get_content_after_heading(
+                        children, i, lines=include_content_lines, chars=include_content_chars
+                    )
+                    if content:
+                        heading_data["content"] = content
+                        # Update raw to include the content
+                        raw_heading = f"{raw_heading}\n{content}"
+                        heading_data["raw"] = raw_heading
+
+                headings.append(heading_data)
 
     verbose_msg(f"Found {len(headings)} headings")
     return headings
+
+
+def _get_content_after_heading(
+    children: List, heading_index: int, lines: Optional[int] = None, chars: Optional[int] = None
+) -> Optional[str]:
+    """
+    Get content after a heading at the given index.
+    
+    Looks for non-heading block tokens (like Paragraph) after the heading
+    and extracts text content according to the specified limits.
+    
+    Args:
+        children: List of document children tokens
+        heading_index: Index of the heading token in children list
+        lines: Number of lines to extract (takes precedence over chars)
+        chars: Number of characters to extract (used if lines is not specified)
+        
+    Returns:
+        Content as a string, or None if no content found
+    """
+    if lines is None and chars is None:
+        return None
+
+    # Collect all text content after the heading until we hit another heading
+    content_parts = []
+    heading_level = None
+
+    # Look ahead through subsequent tokens
+    for i in range(heading_index + 1, len(children)):
+        token = children[i]
+
+        # Stop if we hit another heading at same or higher level
+        if isinstance(token, Heading):
+            if heading_level is None:
+                # Get the level of the original heading
+                original_heading = children[heading_index]
+                if isinstance(original_heading, Heading):
+                    heading_level = original_heading.level
+            if token.level <= heading_level:
+                break
+
+        # Extract text from paragraphs and other content blocks
+        if isinstance(token, Paragraph) or (hasattr(token, "children") and token.children):
+            text = _extract_text_from_token(token).strip()
+            if text:
+                content_parts.append(text)
+
+    if not content_parts:
+        return None
+
+    # Combine all content
+    full_content = "\n".join(content_parts)
+
+    # Apply limits
+    if lines is not None and lines > 0:
+        # Extract specified number of lines
+        content_lines = full_content.split("\n")
+        extracted_lines = content_lines[:lines]
+        return "\n".join(extracted_lines)
+    elif chars is not None and chars > 0:
+        # Extract specified number of characters
+        return full_content[:chars]
+
+    return None
 
 
 def extract_emphasized(

@@ -108,6 +108,19 @@ Extract headings in JSON format:
 mdparser document.md --headings 3 --format json
 ```
 
+Extract headings with content included:
+
+```bash
+# Include 1 line of content after each level 3 heading
+mdparser document.md --headings 3 --include-content-lines 1
+
+# Include 2 lines of content after each level 3 heading
+mdparser document.md --headings 3 --include-content-lines 2
+
+# Include 100 characters of content after each level 3 heading
+mdparser document.md --headings 3 --include-content-chars 100
+```
+
 ### Extract Emphasized Text
 
 Extract all emphasized text (bold and italic):
@@ -363,6 +376,11 @@ mdparser <file> [OPTIONS]
 Heading Extraction:
   --headings LEVELS       Extract headings up to level N (1-6)
                           Example: --headings 3 extracts levels 1, 2, 3
+  --include-content-lines N  Include N lines of content after headings at the deepest extracted level
+                          Example: --headings 3 --include-content-lines 2 includes 2 lines for level 3 headings
+  --include-content-chars N  Include N characters of content after headings at the deepest extracted level
+                          Example: --headings 3 --include-content-chars 100 includes 100 chars for level 3 headings
+                          Note: If both --include-content-lines and --include-content-chars are specified, lines takes precedence
 
 Emphasized Text Extraction:
   --emphasized            Extract all emphasized text (bold/italic)
